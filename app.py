@@ -4,7 +4,6 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from bs4 import BeautifulSoup as bs
 
 
 
@@ -29,7 +28,5 @@ iframe2 = browser.find_element_by_id('home_main')
 browser.switch_to.frame(iframe2)
 
 li = browser.find_elements_by_css_selector('div.box > ul > li')
-
-print(iframe2.get_attribute('id'))
 
 browser.quit()
