@@ -10,7 +10,7 @@ from pprint import pprint
 
 ## 浏览器配置
 chrome_options = webdriver.ChromeOptions()
-# chrome_options.add_argument('--headless') #隐藏浏览器界面
+chrome_options.add_argument('--headless') #隐藏浏览器界面
 chrome_options.add_argument('--disable-gpu')
 
 ## 驱动配置
@@ -44,26 +44,24 @@ class obj: #obj对象
     def print(self): #对象方法
         pprint(self.__dict__)
 
-def write(item):
-    if item.state.find('成交')!=-1:
-        f.write(str(item.__dict__))
-        f.write('\n')
-
 def getContent(): # 获取内容
     toIframe2()
     lis = wait.until(EC.visibility_of_all_elements_located((By.CSS_SELECTOR,'body > div > div.box > ul > li')))
-    items=[]
     for li in lis:
+        f = open('a.txt','a')
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
         item.code = li.find_element_by_tag_name('h3').text
         item.name = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(1) > em').text
         item.position = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(3) > em').text
-        # item.useFor = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(5)').text
-        # item.endTime = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(9)').text
-        # item.finalPrice = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(15)').text
-        # item.print()
-        write(item)
+        item.useFor = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(5)').text
+        item.endTime = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(11)').text
+        item.finalPrice = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(15)').text
+        #item.print()
+        if item.state.find('成交')!=-1:
+            f.write(str(item.__dict__))
+            f.write('\n')
+        f.close()
 
    
 ##main
@@ -77,20 +75,21 @@ try:
 except:
     TimeoutError
 
-items=[]
-f = open('a.txt','w')
-for i in range(2,10+1): #每次爬10页
+for i in range(1,10+1): #每次爬10页
     try:
+        print(i) #后台输出当前页数
+        f = open('a.txt','a')
+        f.write(str(i))
+        f.write('\n')
+        f.close()
+        getContent()
         toIframe1()
         btnNext = wait.until(EC.element_to_be_clickable((By.LINK_TEXT,'下一页')))
         btnNext.click()
-        time.sleep(0.5)
-        print(i) #后台输出当前页数
-        getContent()
-        time.sleep(0.5)
     except:
         TimeoutError
+    time.sleep(5)
 
-f.close()
+
 print('完成')
 browser.quit()
