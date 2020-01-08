@@ -10,7 +10,7 @@ from pprint import pprint
 
 ## 浏览器配置
 chrome_options = webdriver.ChromeOptions()
-# chrome_options.add_argument('--headless') #隐藏浏览器界面
+chrome_options.add_argument('--headless') #隐藏浏览器界面
 chrome_options.add_argument('--disable-gpu')
 
 ## 驱动配置
@@ -31,16 +31,20 @@ def toIframe2(): #进入iframe内的iframe
     iframe2 = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'#home_main')))
     browser.switch_to.frame(iframe2)
 
+def toIframe3(): #进入iframe内的iframe
+    browser.switch_to.default_content()
+    iframe1 = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'#contentmain')))
+    browser.switch_to.frame(iframe1)
+    iframe3 = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'#resource_main')))
+    browser.switch_to.frame(iframe3)
+
 
 class obj: #obj对象
     def __init__(self): #对象属性
         self.state = ''
         self.code = ''
-        self.name = ''
-        self.position = ''
-        self.useFor = ''
-        self.endTime = ''
-        self.finalPrice = ''
+        self.information = ''
+        self.url = ''
     def print(self): #对象方法
         pprint(self.__dict__)
 
@@ -52,19 +56,21 @@ def getContent(): # 获取内容
         TimeoutError
     for li in lis:
         f = open('a.txt','a')
+        toIframe2()
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
         if item.state.find('成交')!=-1:
-            item.code = li.find_element_by_tag_name('h3').text
-            item.name = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(1) > em').text
-            item.position = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(3) > em').text
-            item.useFor = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(5)').text
-            item.endTime = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(11)').text
-            item.finalPrice = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(15)').text
+            item.code = li.find_element_by_css_selector('h3 > em').text
+            item.url = li.find_element_by_css_selector('span.boxtxt2 > input').get_attribute('onclick')
+            browser.execute_script(item.url)
+            toIframe3()
+            item.information = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'#contain > div.cotain-box > table > tbody > tr:nth-child(2) > td.td_line1 > table > tbody > tr:nth-child(2)'))).get_attribute('outerHTML')
             #item.print()
             f.write(str(item.__dict__))
             f.write('\n')
+            browser.execute_script('javascript:goReturn();')
         f.close()
+    
 
    
 ##main
@@ -77,6 +83,8 @@ except:
     TimeoutError
 btnZJ.click()
 browser.execute_script('javascript:resoult();')
+browser.execute_script('javascript:window.hide1();')
+browser.execute_script('javascript:window.hide2();')
 
 for i in range(1,10+1): #每次爬10页
     print(i) #后台输出当前页数
@@ -91,7 +99,7 @@ for i in range(1,10+1): #每次爬10页
     except:
         TimeoutError
     btnNext.click()
-    time.sleep(3)
+    time.sleep(2)
 
 
 print('完成')
