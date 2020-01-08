@@ -17,6 +17,9 @@ chrome_options.add_argument('--disable-gpu')
 browser = webdriver.Chrome(chrome_options=chrome_options)
 wait=WebDriverWait(browser,10)
 
+f=open('lastcode','r')
+rlastcode = f.readline()
+f.close()
 ##定义方法
 
 def toIframe1(): #进入iframe
@@ -54,22 +57,27 @@ def getContent(): # 获取内容
         lis = wait.until(EC.visibility_of_all_elements_located((By.CSS_SELECTOR,'body > div > div.box > ul > li')))
     except:
         TimeoutError
+        browser.quit()
     for li in lis:
         f = open('a.txt','a')
         toIframe2()
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
-        if item.state.find('成交')!=-1:
-            item.code = li.find_element_by_css_selector('h3 > em').text
-            item.url = li.find_element_by_css_selector('span.boxtxt2 > input').get_attribute('onclick')
-            browser.execute_script(item.url)
-            toIframe3()
-            item.information = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'#contain > div.cotain-box > table > tbody > tr:nth-child(2) > td.td_line1 > table > tbody > tr:nth-child(2)'))).get_attribute('outerHTML')
-            #item.print()
-            f.write(str(item.__dict__))
-            f.write('\n')
-            browser.execute_script('javascript:goReturn();')
-        f.close()
+        item.code = li.find_element_by_css_selector('h3 > em').text
+        if item.code != rlastcode:
+            if item.state.find('成交')!=-1:
+                item.url = li.find_element_by_css_selector('span.boxtxt2 > input').get_attribute('onclick')
+                browser.execute_script(item.url)
+                time.sleep(0.3)
+                toIframe3()
+                item.information = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="contain"]/div[3]/table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td/table'))).get_attribute('outerHTML').replace('\t','')
+                #item.print()
+                f.write(str(item.__dict__))
+                f.write('\n')
+                browser.execute_script('javascript:goReturn();')
+            f.close()
+        else:
+            return False
     
 
    
@@ -81,26 +89,32 @@ try:
     btnZJ = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,'#site-nav > ul > li:nth-child(1) > div > a')))
 except:
     TimeoutError
+    browser.quit()
 btnZJ.click()
 browser.execute_script('javascript:resoult();')
 browser.execute_script('javascript:window.hide1();')
 browser.execute_script('javascript:window.hide2();')
 
-for i in range(1,10+1): #每次爬10页
-    print(i) #后台输出当前页数
+toIframe2()
+f=open('lastcode','w')
+lastcode = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,('body > div > div.box > ul > li:nth-child(1) > h3 > em')))).text
+f.write(lastcode)
+f.close
+for i in range(20): #每次爬10页
+    print('第'+str(i)+'页') #后台输出当前页数
     f = open('a.txt','a')
-    f.write(str(i))
-    f.write('\n')
-    f.close()
-    getContent()
+    flag=getContent()
+    if flag==False:
+        break
     toIframe1()
     try:
         btnNext = wait.until(EC.element_to_be_clickable((By.LINK_TEXT,'下一页')))
     except:
         TimeoutError
+        browser.quit()
     btnNext.click()
-    time.sleep(2)
+    time.sleep(0.5)
 
 
-print('完成')
+print('爬取完成')
 browser.quit()
