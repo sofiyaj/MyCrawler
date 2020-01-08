@@ -10,7 +10,7 @@ from pprint import pprint
 
 ## 浏览器配置
 chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument('--headless') #隐藏浏览器界面
+# chrome_options.add_argument('--headless') #隐藏浏览器界面
 chrome_options.add_argument('--disable-gpu')
 
 ## 驱动配置
@@ -46,19 +46,22 @@ class obj: #obj对象
 
 def getContent(): # 获取内容
     toIframe2()
-    lis = wait.until(EC.visibility_of_all_elements_located((By.CSS_SELECTOR,'body > div > div.box > ul > li')))
+    try:
+        lis = wait.until(EC.visibility_of_all_elements_located((By.CSS_SELECTOR,'body > div > div.box > ul > li')))
+    except:
+        TimeoutError
     for li in lis:
         f = open('a.txt','a')
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
-        item.code = li.find_element_by_tag_name('h3').text
-        item.name = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(1) > em').text
-        item.position = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(3) > em').text
-        item.useFor = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(5)').text
-        item.endTime = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(11)').text
-        item.finalPrice = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(15)').text
-        #item.print()
         if item.state.find('成交')!=-1:
+            item.code = li.find_element_by_tag_name('h3').text
+            item.name = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(1) > em').text
+            item.position = li.find_element_by_css_selector('span.boxtxt1 > span:nth-child(3) > em').text
+            item.useFor = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(5)').text
+            item.endTime = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(11)').text
+            item.finalPrice = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(15)').text
+            #item.print()
             f.write(str(item.__dict__))
             f.write('\n')
         f.close()
@@ -70,25 +73,25 @@ browser.get("http://land.zjgtjy.cn/GTJY_ZJ/go_home") #模拟访问
 
 try:
     btnZJ = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,'#site-nav > ul > li:nth-child(1) > div > a')))
-    btnZJ.click()
-    browser.execute_script('javascript:resoult();')
 except:
     TimeoutError
+btnZJ.click()
+browser.execute_script('javascript:resoult();')
 
 for i in range(1,10+1): #每次爬10页
+    print(i) #后台输出当前页数
+    f = open('a.txt','a')
+    f.write(str(i))
+    f.write('\n')
+    f.close()
+    getContent()
+    toIframe1()
     try:
-        print(i) #后台输出当前页数
-        f = open('a.txt','a')
-        f.write(str(i))
-        f.write('\n')
-        f.close()
-        getContent()
-        toIframe1()
         btnNext = wait.until(EC.element_to_be_clickable((By.LINK_TEXT,'下一页')))
-        btnNext.click()
     except:
         TimeoutError
-    time.sleep(5)
+    btnNext.click()
+    time.sleep(3)
 
 
 print('完成')
