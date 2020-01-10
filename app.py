@@ -4,8 +4,8 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-import time
-from pprint import pprint
+
+import time,requests,json
 
 
 ## 浏览器配置
@@ -17,8 +17,8 @@ chrome_options.add_argument('--disable-gpu')
 browser = webdriver.Chrome(chrome_options=chrome_options)
 wait=WebDriverWait(browser,10)
 
-f=open('lastcode','r')
-rlastcode = f.readline()
+f=open('last.id','r')
+rlastid = f.readline()
 f.close()
 ##定义方法
 
@@ -41,15 +41,36 @@ def toIframe3(): #进入iframe内的iframe
     iframe3 = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'#resource_main')))
     browser.switch_to.frame(iframe3)
 
+def Update2Confluence(time,landid,content):
+    jsondata = {
+        "type":"page",
+        "title": time+"-"+landid,
+        "ancestors":[{"id":7602339}], 
+        "space":{"key":"LTI"},
+        "body":{
+            "storage":{
+                "value":"<ac:structured-macro ac:name=\"html\"><ac:plain-text-body><![CDATA[\
+                            "+content+"\
+                        ]]></ac:plain-text-body></ac:structured-macro>",
+                "representation":"storage"
+                }
+            }
+        }
+    r = requests.post('http://file.znmq.net/rest/api/content/',
+            data=json.dumps(jsondata),
+            auth=('robot','sHfR6m1nH_'),
+            headers=({'Content-Type':'application/json;charset=utf-8'})
+        )
+    return r
 
 class obj: #obj对象
     def __init__(self): #对象属性
         self.state = ''
-        self.code = ''
+        self.landid = ''
         self.information = ''
         self.url = ''
     def print(self): #对象方法
-        pprint(self.__dict__)
+        print(self.__dict__)
 
 def getContent(): # 获取内容
     toIframe2()
@@ -63,19 +84,22 @@ def getContent(): # 获取内容
         toIframe2()
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
-        item.code = li.find_element_by_css_selector('h3 > em').text
-        if item.code != rlastcode:
-            if item.state.find('成交')!=-1:
+        item.landid = li.find_element_by_css_selector('h3 > em').text
+        item.transactionTime = li.find_element_by_css_selector('span.boxtxt1 > em:nth-child(11)').text
+        if item.landid != rlastid:
+            if item.state.find('成交')!=-1 and item.state.find('未成交')==-1:
                 item.url = li.find_element_by_css_selector('span.boxtxt2 > input').get_attribute('onclick')
                 browser.execute_script(item.url)
                 time.sleep(0.3)
                 toIframe3()
-                item.information = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="contain"]/div[3]/table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td/table'))).get_attribute('outerHTML').replace('\t','')
+                item.information = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="contain"]/div[3]/table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td/table'))).get_attribute('outerHTML').replace('\t','').replace('\n','')
+                print(Update2Confluence(item.transactionTime,item.landid,item.information))
                 #item.print()
                 f.write(str(item.__dict__))
                 f.write('\n')
                 browser.execute_script('javascript:goReturn();')
             f.close()
+            time.sleep(0.1)
         else:
             return False
     
@@ -96,11 +120,11 @@ browser.execute_script('javascript:window.hide1();')
 browser.execute_script('javascript:window.hide2();')
 
 toIframe2()
-f=open('lastcode','w')
-lastcode = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,('body > div > div.box > ul > li:nth-child(1) > h3 > em')))).text
-f.write(lastcode)
+f=open('last.id','w')
+wlastid = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,('body > div > div.box > ul > li:nth-child(1) > h3 > em')))).text
+f.write(wlastid)
 f.close
-for i in range(20): #每次爬10页
+for i in range(1,20+1): #最多爬20页
     print('第'+str(i)+'页') #后台输出当前页数
     f = open('a.txt','a')
     flag=getContent()
