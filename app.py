@@ -25,14 +25,21 @@ chrome_options.add_argument('--disable-gpu')
 browser = webdriver.Chrome(chrome_options=chrome_options)
 wait=WebDriverWait(browser,10)
 
-f=open('last.id','r')
-rlastid = f.readline().replace('\n','')
-f.close()
-
-f=open("confluence-user-password.conf",'r')
-confluenceUserName = f.readline().replace('\n','')
-confluencePassword = f.readline().replace('\n','')
-f.close()
+try:
+    f=open('last.id','r')
+    rlastid = f.readline().replace('\n','')
+    f.close()
+except:
+    print('爬取记录文件写入错误')
+    browser.quit()
+try:
+    f=open("confluence-user-password.conf",'r')
+    confluenceUserName = f.readline().replace('\n','')
+    confluencePassword = f.readline().replace('\n','')
+    f.close()
+except:
+    print('confluence账户信息文件获取错误')
+    browser.quit()
 
 ##方法定义
 def toIframe1(): #进入iframe
@@ -94,7 +101,6 @@ def getContent(): # 获取内容
         browser.quit()
     for li in lis:
         f = open('a.txt','a')
-        time.sleep(0.5)
         toIframe2()
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
@@ -115,8 +121,6 @@ def getContent(): # 获取内容
             f.close()
         else:
             return False
-    
-
    
 ##main
 
@@ -133,25 +137,31 @@ browser.execute_script('javascript:window.hide1();')
 browser.execute_script('javascript:window.hide2();')
 
 toIframe2()
-f=open('last.id','w')
-wlastid = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,('body > div > div.box > ul > li:nth-child(1) > h3 > em')))).text
-f.write(wlastid)
-f.close
-for i in range(1,30+1): #不重复的情况下最多爬30页
-    print('第'+str(i)+'页') #后台输出当前页数
-    time.sleep(0.5)
-    f = open('a.txt','a')
-    flag=getContent()
-    if flag==False:
-        break
-    toIframe1()
-    try:
-        btnNext = wait.until(EC.element_to_be_clickable((By.LINK_TEXT,'下一页')))
-    except:
-        TimeoutError
-        browser.quit()
-    btnNext.click()
-
-
+try:
+    f=open('last.id','w')
+    wlastid = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,('body > div > div.box > ul > li:nth-child(1) > h3 > em')))).text
+    f.write(wlastid)
+    f.close
+except:
+    print('爬取记录文件写入错误')
+    browser.quit()
+try:
+    for i in range(1,30+1): #不重复的情况下最多爬30页
+        print('第'+str(i)+'页') #后台输出当前页数
+        time.sleep(1)
+        f = open('a.txt','a')
+        flag=getContent()
+        if flag==False:
+            break
+        toIframe1()
+        try:
+            btnNext = wait.until(EC.element_to_be_clickable((By.LINK_TEXT,'下一页')))
+        except:
+            TimeoutError
+            browser.quit()
+        btnNext.click()
+except Exception as err: #捕获错误，并退出浏览器进程
+    print(err)
+    browser.quit()
 print('爬取完成')
 browser.quit()
