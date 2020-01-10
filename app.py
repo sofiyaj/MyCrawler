@@ -10,7 +10,15 @@ import time,requests,json
 
 ## 浏览器配置
 chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument('--headless') #隐藏浏览器界面
+###不加载图片
+prefs = {
+    'profile.default_content_setting_values' : {
+        'images' : 2
+    }
+}
+chrome_options.add_experimental_option('prefs',prefs)
+###隐藏浏览器界面
+chrome_options.add_argument('--headless') 
 chrome_options.add_argument('--disable-gpu')
 
 ## 驱动配置
@@ -18,10 +26,15 @@ browser = webdriver.Chrome(chrome_options=chrome_options)
 wait=WebDriverWait(browser,10)
 
 f=open('last.id','r')
-rlastid = f.readline()
+rlastid = f.readline().replace('\n','')
 f.close()
-##定义方法
 
+f=open("confluence-user-password.conf",'r')
+confluenceUserName = f.readline().replace('\n','')
+confluencePassword = f.readline().replace('\n','')
+f.close()
+
+##方法定义
 def toIframe1(): #进入iframe
     browser.switch_to.default_content()
     iframe1 = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,'#contentmain')))
@@ -44,8 +57,8 @@ def toIframe3(): #进入iframe内的iframe
 def Update2Confluence(time,landid,content):
     jsondata = {
         "type":"page",
-        "title": time+"-"+landid,
-        "ancestors":[{"id":7602339}], 
+        "title": "["+time+"] - "+landid,
+        "ancestors":[{"id":7602440}], 
         "space":{"key":"LTI"},
         "body":{
             "storage":{
@@ -58,7 +71,7 @@ def Update2Confluence(time,landid,content):
         }
     r = requests.post('http://file.znmq.net/rest/api/content/',
             data=json.dumps(jsondata),
-            auth=('robot','sHfR6m1nH_'),
+            auth=(confluenceUserName,confluencePassword),
             headers=({'Content-Type':'application/json;charset=utf-8'})
         )
     return r
@@ -81,6 +94,7 @@ def getContent(): # 获取内容
         browser.quit()
     for li in lis:
         f = open('a.txt','a')
+        time.sleep(0.5)
         toIframe2()
         item = obj()
         item.state = li.find_element_by_tag_name('h2').text
@@ -90,7 +104,7 @@ def getContent(): # 获取内容
             if item.state.find('成交')!=-1 and item.state.find('未成交')==-1:
                 item.url = li.find_element_by_css_selector('span.boxtxt2 > input').get_attribute('onclick')
                 browser.execute_script(item.url)
-                time.sleep(0.3)
+                time.sleep(0.1)
                 toIframe3()
                 item.information = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="contain"]/div[3]/table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td/table'))).get_attribute('outerHTML').replace('\t','').replace('\n','')
                 print(Update2Confluence(item.transactionTime,item.landid,item.information))
@@ -99,7 +113,6 @@ def getContent(): # 获取内容
                 f.write('\n')
                 browser.execute_script('javascript:goReturn();')
             f.close()
-            time.sleep(0.1)
         else:
             return False
     
@@ -124,8 +137,9 @@ f=open('last.id','w')
 wlastid = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR,('body > div > div.box > ul > li:nth-child(1) > h3 > em')))).text
 f.write(wlastid)
 f.close
-for i in range(1,20+1): #最多爬20页
+for i in range(1,30+1): #不重复的情况下最多爬30页
     print('第'+str(i)+'页') #后台输出当前页数
+    time.sleep(0.5)
     f = open('a.txt','a')
     flag=getContent()
     if flag==False:
@@ -137,7 +151,6 @@ for i in range(1,20+1): #最多爬20页
         TimeoutError
         browser.quit()
     btnNext.click()
-    time.sleep(0.5)
 
 
 print('爬取完成')
